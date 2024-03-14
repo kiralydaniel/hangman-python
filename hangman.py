@@ -1,52 +1,138 @@
-# PART 1
-# display a menu with at least 3 difficulty choices and ask the user
-# to select the desired level
-difficulty = "1" # sample data, normally the user should choose the difficulty
 
+import random
+import os
+import draw
 
-# STEP 2
-# based on the chosen difficulty level, set the values 
-# for the player's lives
-word_to_guess = "Cairo" # sample data, normally the word should be chosen from the countries-and-capitals.txt
-lives = 5 # sample data, normally the lives should be chosen based on the difficulty
+def clear():
+    os.system('clear')
 
+def menu():
+    print("Hangman")
+    print("Difficulty:")
+    print("1: easy")
+    print("2: medium")
+    print("3: hard")
+    print("If you want to quit, type quit.")
+    possible_difficulty = [1, 2, 3]
+    while True:
+        difficulty = input("Choose difficulty: ")
+        if difficulty.lower() == "quit":
+            clear()
+            quit()
+        if int(difficulty) in possible_difficulty:
+            return int(difficulty)
 
-# STEP 3
-# display the chosen word to guess with all letters replaced by "_"
-# for example instead of "Cairo" display "_ _ _ _ _"
+def choose_category():
+    print("Categories:")
+    print("1: countries")
+    print("2: capitals")
+    while True:
+        chosen_category = int(input("Choose category: "))
+        if chosen_category == 1:
+            return "countries"
+        elif chosen_category == 2:
+            return "capitals"
 
+def read_value_from_file(category):
+    word_pool = []
+    with open("countries-and-capitals.txt", encoding="UTF-8") as f:
+        for line in f:
+            words = line.strip().split(" | ")
+            if category == "countries":
+                word_pool.append(words[0])
+            if category == "capitals":
+                word_pool.append(words[1])
+    return word_pool
 
-# STEP 4
-# ask the user to type a letter
-# here you should validate if the typed letter is the word 
-# "quit", "Quit", "QUit", "QUIt", "QUIT", "QuIT"... you get the idea :)
-# HINT: use the upper() or lower() built-in Python functions
+def values(difficulty, word_pool):
+    lives = 0
+    word_to_guess = []
+    if difficulty == 1:
+        lives = 7
+        for word in word_pool:
+            if len(word) <= 6:
+                word_to_guess.append(word)
+    if difficulty == 2:
+        lives = 5
+        for word in word_pool:
+            if len(word) >= 5 and len(word) <= 7:
+                word_to_guess.append(word)
+    if difficulty == 3:
+        lives = 3
+        for word in word_pool:
+            if len(word) >= 6:
+                word_to_guess.append(word)
+    secret = random.choice(word_to_guess)
+    return lives, secret
 
+def big_secret(secret):
+    hidden_guess = ""
+    for syl in secret:
+        if syl == " ":
+            hidden_guess += " "
+        elif syl == "-":
+            hidden_guess += "-"
+        else:
+            hidden_guess += "_"
+    return hidden_guess
 
-# STEP 5
-# validate if the typed letter is already in the tried letters
-# HINT: search on the internet: `python if letter in list`
-# If it is not, than append to the tried letters
-# If it has already been typed, return to STEP 5. HINT: use a while loop here
-already_tried_letters = [] # this list will contain all the tried letters
+def ask_user(already_tried_letters):
+    while True:
+        letter = input("Write a letter: ").lower()
+        if letter == "quit":
+            clear()
+            quit()
+        elif letter.isalpha() is False or len(letter) != 1:
+            print("Try one letter only!")  
+        elif letter in already_tried_letters:
+            print("You tried this letter.")
+        else:
+            break
+    return letter
 
-
-# STEP 6
-# if the letter is present in the word iterate through all the letters in the variable
-# word_to_guess. If that letter is present in the already_tried_letters then display it,
-# otherwise display "_".
-
-
-# if the letter is not present in the word decrease the value in the lives variable
-# and display a hangman ASCII art. You can search the Internet for "hangman ASCII art",
-# or draw a new beautiful one on your own.
-
-
-
-# STEP 7
-# check if the variable already_tried_letters already contains all the letters necessary
-# to build the value in the variable word_to_guess. If so display a winning message and exit
-# the app.
-# If you still have letters that are not guessed check if you have a non negative amount of lives
-# left. If not print a loosing message and exit the app.
-# If neither of the 2 conditions mentioned above go back to STEP 4
+def game():
+    clear()
+    difficulty = menu()
+    clear()
+    category = choose_category()
+    clear()
+    word_pool = read_value_from_file(category)
+    lives, secret = values(difficulty, word_pool)
+    hidden_secret = big_secret(secret)
+    already_tried_letters = []
+    if " " in secret:
+        already_tried_letters.append(" ")
+    while lives > 0:
+        draw.painting(lives, difficulty)
+        print("\n" + " ".join(hidden_secret) + "\n")
+        print(f"Lives: {lives}") 
+        print(already_tried_letters)
+        guess = ask_user(already_tried_letters)
+        already_tried_letters.append(guess)
+        if guess in str(secret).lower():
+            for i, letter in enumerate(secret):
+                if str(letter).lower() == str(guess).lower():
+                    hidden_secret = hidden_secret[:i]+letter+hidden_secret[i+1:]
+        else:
+            lives -= 1
+        if lives == 0:
+            clear()
+            draw.painting(lives, difficulty)
+            print("You loose!")
+            print(f"This was the secret: {secret}")
+            input("Press enter to continue...")
+            game()
+        win = True
+        for syllable in str(secret).lower():
+            if str(syllable).lower() not in already_tried_letters:
+                win = False
+        if win is True:
+            clear()
+            draw.victorypaint()
+            print("You won!")
+            print(f"This was the secret: {secret}")
+            input("Press enter to continue...")
+            game()
+        print(hidden_secret)
+        clear()
+game()
